@@ -3,6 +3,9 @@ Flask-ZODB
 
 ![Flask-ZODB][logo]
 
+[![Build Status](https://travis-ci.org/Kyah/flask-zodb.svg)](https://travis-ci.org/Kyah/flask-zodb)
+[![Coverage Status](https://coveralls.io/repos/Kyah/flask-zodb/badge.svg?branch=master&service=github)](https://coveralls.io/github/Kyah/flask-zodb?branch=master)
+
 
 Simple extension for integrating the ZODB in Flask applications.
 
