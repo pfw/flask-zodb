@@ -2,7 +2,11 @@ import flask
 import transaction
 import zodburi
 
-from UserDict import IterableUserDict
+try:
+	from collections import UserDict
+except ImportError:
+	from UserDict import IterableUserDict as UserDict
+
 from ZODB.DB import DB
 from contextlib import contextmanager, closing
 from werkzeug.utils import cached_property
@@ -12,11 +16,15 @@ from persistent import Persistent as Object
 from persistent.list import PersistentList as List
 from persistent.mapping import PersistentMapping as Dict
 
+try:
+	basestring
+except NameError:
+	basestring = str
 
 __all__ = ['ZODB', 'Object', 'List', 'Dict', 'BTree']
 
 
-class ZODB(IterableUserDict):
+class ZODB(UserDict):
     """Extension object.  Behaves as the root object of the storage during
     requests, i.e. a `~persistent.mapping.PersistentMapping`.
 
