@@ -2,26 +2,12 @@ import flask
 import transaction
 import zodburi
 
-try:
-	from collections import UserDict
-except ImportError:
-	from UserDict import IterableUserDict as UserDict
-
+from collections import UserDict
 from ZODB.DB import DB
 from contextlib import contextmanager, closing
 from werkzeug.utils import cached_property
 
-from BTrees.OOBTree import OOBTree as BTree
-from persistent import Persistent as Object
-from persistent.list import PersistentList as List
-from persistent.mapping import PersistentMapping as Dict
-
-try:
-	basestring
-except NameError:
-	basestring = str
-
-__all__ = ['ZODB', 'Object', 'List', 'Dict', 'BTree']
+__all__ = ["ZODB"]
 
 
 class ZODB(UserDict):
@@ -48,9 +34,8 @@ class ZODB(UserDict):
 
     def init_app(self, app):
         """Configure a Flask application to use this ZODB extension."""
-        assert 'zodb' not in app.extensions, \
-               'app already initiated for zodb'
-        app.extensions['zodb'] = _ZODBState(self, app)
+        assert "zodb" not in app.extensions, "app already initiated for zodb"
+        app.extensions["zodb"] = _ZODBState(self, app)
         app.teardown_request(self.close_db)
 
     def close_db(self, exception):
@@ -58,6 +43,7 @@ class ZODB(UserDict):
         commit the transaction and disconnect ZODB if it was used during
         the request."""
         if self.is_connected:
+
             if exception is None and not transaction.isDoomed():
                 transaction.commit()
             else:
@@ -66,10 +52,9 @@ class ZODB(UserDict):
 
     def create_db(self, app):
         """Create a ZODB connection pool from the *app* configuration."""
-        assert 'ZODB_STORAGE' in app.config, \
-               'ZODB_STORAGE not configured'
-        storage = app.config['ZODB_STORAGE']
-        if isinstance(storage, basestring):
+        assert "ZODB_STORAGE" in app.config, "ZODB_STORAGE not configured"
+        storage = app.config["ZODB_STORAGE"]
+        if isinstance(storage, str):
             factory, dbargs = zodburi.resolve_uri(storage)
         elif isinstance(storage, tuple):
             factory, dbargs = storage
@@ -80,16 +65,16 @@ class ZODB(UserDict):
     @property
     def is_connected(self):
         """True if there is a Flask request and ZODB was connected."""
-        return (flask.has_request_context() and
-                hasattr(flask._request_ctx_stack.top, 'zodb_connection'))
+        return flask.has_request_context() and hasattr(
+            flask._request_ctx_stack.top, "zodb_connection"
+        )
 
     @property
     def connection(self):
         """Request-bound database connection."""
-        assert flask.has_request_context(), \
-               'tried to connect zodb outside request'
+        assert flask.has_request_context(), "tried to connect zodb outside request"
         if not self.is_connected:
-            connector = flask.current_app.extensions['zodb']
+            connector = flask.current_app.extensions["zodb"]
             flask._request_ctx_stack.top.zodb_connection = connector.db.open()
             transaction.begin()
         return flask._request_ctx_stack.top.zodb_connection
