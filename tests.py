@@ -1,5 +1,3 @@
-from __future__ import with_statement
-
 import pytest
 import transaction
 
@@ -36,13 +34,10 @@ def test_single_app_shortcut():
 
 
 def test_connection(app):
-    assert not db.is_connected
-    with app.test_request_context():
-        assert not db.is_connected
+    with app.app_context():
+        assert db.is_connected
         db["answer"] = 42
         assert db["answer"] == 42
-        assert db.is_connected
-    assert not db.is_connected
 
 
 def test_commit_transaction(app):
@@ -71,3 +66,9 @@ def test_abort_transaction_if_doomed(app):
 
     with app.test_request_context():
         assert "answer" not in db
+
+def test_transfer_count(app):
+    with app.app_context():
+        db['answer'] = 42
+        transaction.commit()
+        assert db.transfers

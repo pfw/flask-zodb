@@ -37,7 +37,7 @@ from setuptools import setup
 
 setup(
     name='Flask-ZODB',
-    version='0.2',
+    version='20.5',
     url='https://github.com/dag/flask-zodb',
 
     license='BSD',
@@ -51,22 +51,21 @@ setup(
     py_modules=['flask_zodb'],
     zip_safe=False,
 
-    requires=['flask (>=0.7)', 'ZODB', 'zodburi'],
+    requires=['flask (>=1.0.2)', 'ZODB', 'zodburi'],
     install_requires=[
-        'Flask>=0.7',
+        'Flask>=1.1.2',
         'zodburi',
     ],
 
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 5 - Production/Stable',
         'Environment :: Web Environment',
         'Framework :: ZODB',
+        'Framework :: Flask',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 2.5',
-        'Programming Language :: Python :: 2.6',
-        'Programming Language :: Python :: 2.7',
+        'Programming Language:: Python:: 3.8',
         'Topic :: Database',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
         'Topic :: Software Development :: Libraries :: Python Modules',

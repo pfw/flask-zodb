@@ -187,33 +187,7 @@ API Reference
 Persistent Objects
 """"""""""""""""""
 
-This module exports some shorthand aliases for the persistent types and
-balanced trees commonly used with ZODB.
+The exported shorthand aliases for the persistent types and
+balanced trees commonly used with ZODB have been removed as they
+conflict with typing, eg. List and typing.List
 
-.. class:: Object
-
-  Alias of `persistent.Persistent`.  Use this as the base class for your
-  plain objects instead of `object`, if you intend to save the object in
-  ZODB.  This way changes to existing objects are detected and saved
-  automatically.
-
-.. class:: List
-
-  Alias of `persistent.list.PersistentList`.  Use this instead of `list`
-  for lists that you save in ZODB and changes to it will be detected and
-  saved automatically.  Not necessary if you won't be changing the list
-  after it is saved.
-
-.. class:: Dict
-
-  Alias of `persistent.mapping.PersistentMapping`.  Use this instead of
-  `dict` for mappings that you save in ZODB and that you might want to make
-  changes to later.  This way those changes will automatically be detected
-  and saved.
-
-.. class:: BTree
-
-  Alias of `BTrees.OOBTree.OOBTree`.  Behaves mostly like `Dict` but
-  requires that the keys are orderable and performs better on large
-  mappings.  Whereas a `Dict` is fully loaded in memory every time it is
-  read, a BTree mapping only loads the items that you try to read.

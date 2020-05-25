@@ -1,13 +1,25 @@
-import flask
+import sys
+import time
+
+from flask import _app_ctx_stack, current_app
 import transaction
 import zodburi
 
 from collections import UserDict
+
+from ZODB.ActivityMonitor import ActivityMonitor
+from ZODB.Connection import Connection
 from ZODB.DB import DB
-from contextlib import contextmanager, closing
 from werkzeug.utils import cached_property
+from flask.signals import Namespace
 
 __all__ = ["ZODB"]
+
+
+_signals = Namespace()
+connection_opened = _signals.signal("zodb-connectioned-opened")
+connection_will_close = _signals.signal("zodb-connectioned-willclose")
+connection_closed = _signals.signal("zodb-connectioned-closed")
 
 
 class ZODB(UserDict):
@@ -29,6 +41,8 @@ class ZODB(UserDict):
     """
 
     def __init__(self, app=None):
+        # Don't call super here as the ZODB root to be connected is what will be
+        # used as .data
         if app is not None:
             self.init_app(app)
 
@@ -43,14 +57,18 @@ class ZODB(UserDict):
         commit the transaction and disconnect ZODB if it was used during
         the request."""
         if self.is_connected:
-
+            connection_will_close.send()
             if exception is None and not transaction.isDoomed():
                 transaction.commit()
             else:
                 transaction.abort()
+            _app_ctx_stack.top.zodb_transfers = self.connection.getTransferCounts(
+                clear=True
+            )
             self.connection.close()
+            connection_closed.send()
 
-    def create_db(self, app):
+    def create_db(self, app) -> DB:
         """Create a ZODB connection pool from the *app* configuration."""
         assert "ZODB_STORAGE" in app.config, "ZODB_STORAGE not configured"
         storage = app.config["ZODB_STORAGE"]
@@ -63,28 +81,37 @@ class ZODB(UserDict):
         return DB(factory(), **dbargs)
 
     @property
-    def is_connected(self):
-        """True if there is a Flask request and ZODB was connected."""
-        return flask.has_request_context() and hasattr(
-            flask._request_ctx_stack.top, "zodb_connection"
-        )
+    def is_connected(self) -> bool:
+        """True ZODB was connected."""
+        return hasattr(_app_ctx_stack.top, "zodb_connection")
 
     @property
-    def connection(self):
-        """Request-bound database connection."""
-        assert flask.has_request_context(), "tried to connect zodb outside request"
+    def connection(self) -> Connection:
+        """
+        App context database connection
+        """
+
         if not self.is_connected:
-            connector = flask.current_app.extensions["zodb"]
-            flask._request_ctx_stack.top.zodb_connection = connector.db.open()
+            state = current_app.extensions["zodb"]
+            connection = _app_ctx_stack.top.zodb_connection = state.db.open()
+            _app_ctx_stack.top.zodb_transfers = connection.getTransferCounts()
+            connection_opened.send()
             transaction.begin()
-        return flask._request_ctx_stack.top.zodb_connection
+        return _app_ctx_stack.top.zodb_connection
 
     @property
     def data(self):
         return self.connection.root()
 
+    @property
+    def transfers(self):
+        """
+        Return the current transfer counts for the current connection
+        """
+        return _app_ctx_stack.top.zodb_connection.getTransferCounts()
 
-class _ZODBState(object):
+
+class _ZODBState:
     """Adds a ZODB connection pool to a Flask application."""
 
     def __init__(self, zodb, app):
@@ -92,6 +119,8 @@ class _ZODBState(object):
         self.app = app
 
     @cached_property
-    def db(self):
+    def db(self) -> DB:
         """Connection pool."""
-        return self.zodb.create_db(self.app)
+        db: DB = self.zodb.create_db(self.app)
+        db.setActivityMonitor(ActivityMonitor())
+        return db
